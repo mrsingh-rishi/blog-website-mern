@@ -1,7 +1,19 @@
+import axios from 'axios';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 const PostItem = ({ post, showActions }) => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  const handleDelete = async () => {
+    await axios.delete(`${API_URL}/api/posts/${post._id}`)
+      .then(() => {
+        window.location.reload();
+      })
+      .catch(err => {
+        console.error('Error deleting post:', err);
+      });
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       {post.featuredImage && (
@@ -33,7 +45,10 @@ const PostItem = ({ post, showActions }) => {
             >
               Edit
             </Link>
-            <button className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">
+            <button
+              className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+              onClick={handleDelete}
+            >
               Delete
             </button>
           </div>
