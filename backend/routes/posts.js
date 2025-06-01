@@ -10,13 +10,25 @@ const {
   deletePost 
 } = require('../controllers/postController');
 const { searchPosts } = require('../services/elasticsearch');
+const Post = require('../models/Post');
 
 // Public routes
 router.get('/', getAllPosts);
 router.get('/:slug', getPostBySlug);
 router.get('/search/:query', async (req, res) => {
-  const results = await searchPosts(req.params.query);
-  res.json(results);
+  try {
+    const query = req.params.query;
+    // Simple text search in title and content fields
+    const results = await Post.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { content: { $regex: query, $options: 'i' } }
+      ]
+    });
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Protected routes
