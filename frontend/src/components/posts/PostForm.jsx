@@ -1,23 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Editor from '../ui/Editor';
 import ImageUploader from '../ui/ImageUploader';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
-const PostForm = ({ post }) => {
+const PostForm = () => {
   const navigate = useNavigate();
-  const [title, setTitle] = useState(post?.title || '');
-  const [content, setContent] = useState(post?.content || '');
-  const [tags, setTags] = useState(post?.tags?.join(', ') || '');
-  const [featuredImage, setFeaturedImage] = useState(post?.featuredImage || '');
+  const { id } = useParams();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [tags, setTags] = useState('');
+  const [featuredImage, setFeaturedImage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(!!id);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+  useEffect(() => {
+    if (id) {
+      setLoading(true);
+      axios.get(`${API_URL}/api/posts/${id}`)
+        .then(res => {
+          const post = res.data;
+          setTitle(post.title || '');
+          setContent(post.content || '');
+          setTags(post.tags ? post.tags.join(', ') : '');
+          setFeaturedImage(post.featuredImage || '');
+        })
+        .catch(err => {
+          console.error('Error fetching post:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id, API_URL]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     const postData = {
       title,
       content,
@@ -26,8 +46,8 @@ const PostForm = ({ post }) => {
     };
 
     try {
-      if (post) {
-        await axios.put(`${API_URL}/api/posts/${post._id}`, postData);
+      if (id) {
+        await axios.put(`${API_URL}/api/posts/${id}`, postData);
       } else {
         await axios.post(`${API_URL}/api/posts`, postData);
       }
@@ -39,60 +59,65 @@ const PostForm = ({ post }) => {
     }
   };
 
+  if (loading) {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-          Title
-        </label>
-        <input
-          type="text"
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-        />
-      </div>
-
-      <ImageUploader onUpload={setFeaturedImage} />
-      {featuredImage && (
-        <div>
-          <img 
-            src={featuredImage} 
-            alt="Featured" 
-            className="h-40 object-cover rounded-md"
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8 mt-10 space-y-8"
+      style={{ fontFamily: 'Georgia, serif' }}
+    >
+      <div className="flex flex-col items-center">
+        <ImageUploader onUpload={setFeaturedImage} />
+        {featuredImage && (
+          <img
+            src={featuredImage}
+            alt="Featured"
+            className="h-64 w-full object-cover rounded-lg mt-4 shadow"
           />
-        </div>
-      )}
-
-      <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-          Content
-        </label>
-        <Editor value={content} onChange={setContent} />
+        )}
       </div>
 
-      <div>
-        <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-          Tags (comma separated)
-        </label>
-        <input
-          type="text"
-          id="tags"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-        />
-      </div>
+      <input
+        type="text"
+        id="title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        required
+        placeholder="Title"
+        className="w-full text-4xl font-bold border-0 focus:ring-0 outline-none placeholder-gray-400 mb-2 bg-transparent"
+        style={{ resize: 'none' }}
+        autoFocus
+      />
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="inline-flex justify-center py-2 px-4 border border-gray-700 shadow-sm text-sm font-medium rounded-md text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-800"
-      >
-        {isSubmitting ? 'Saving...' : 'Save Post'}
-      </button>
+      <Editor
+        value={content}
+        onChange={setContent}
+        placeholder="Tell your story..."
+        className="min-h-[300px] text-lg"
+      />
+
+      <input
+        type="text"
+        id="tags"
+        value={tags}
+        onChange={(e) => setTags(e.target.value)}
+        placeholder="Add tags (comma separated)"
+        className="w-full border-0 border-b border-gray-200 focus:border-black focus:ring-0 text-base py-2 bg-transparent"
+      />
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-black text-white px-8 py-3 rounded-full font-semibold shadow hover:bg-gray-900 transition disabled:opacity-60"
+          style={{ fontFamily: 'inherit', fontSize: '1.1rem' }}
+        >
+          {isSubmitting ? 'Saving...' : 'Publish'}
+        </button>
+      </div>
     </form>
   );
 };
