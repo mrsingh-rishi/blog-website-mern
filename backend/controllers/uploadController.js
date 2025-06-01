@@ -1,9 +1,14 @@
 const multer = require('multer');
-
-// Image storage configuration
+const fs = require('fs');
+const path = require('path');
+const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const uploadPath = path.join(__dirname, '..', 'uploads');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -28,7 +33,7 @@ exports.uploadImage = (req, res) => {
       return res.status(400).json({ msg: err.message });
     }
     res.json({
-      imageUrl: `/uploads/${req.file.filename}`
+      imageUrl: `${BASE_URL}/uploads/${req.file.filename}`
     });
   });
 };
